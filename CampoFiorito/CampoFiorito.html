@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+    <meta charset="UTF-8" />
+    <title>CampoFiorito</title>
+    <link rel="StyleSheet" href="styles/style.css" type="text/css" media="all" />
+    <script src="./libs/react.production.min.js"></script>
+    <script src="./libs/react-dom.production.min.js"></script>
+    <script src="./libs/babel.min.js"> </script>
+    <!--<script src="./react-components/Configurazione.js" type="text/babel"></script>-->
+    <!-- React components -->
+    <script type="text/babel">
+        var percorsiCompletati = 0;
+        var percorsiIncompleti = 0;
+
+
+        class App extends React.Component {
+            constructor() {
+                super();
+                this.onClick = this.onClick.bind(this)
+            }
+
+            onClick(e) {
+                let button = e.target.innerHTML;
+                if (button == "Configurazione") {
+                    ReactDOM.render(
+                        <React.StrictMode>
+                            <Config />
+                        </React.StrictMode>,
+                        document.getElementById('Contenuto')
+                    );
+                }
+
+                else if (button == "Griglia") {
+                    const dim = document.getElementById("dimension").value;
+                    if (dim < 3) {
+                        window.alert("Valore troppo basso");
+                    }
+                    else {
+                        ReactDOM.render(
+                            <React.StrictMode>
+                                <Griglia dim={dim} />
+                            </React.StrictMode>,
+                            document.getElementById('Contenuto')
+                        );
+                    }
+                }
+                else if (button === "Conteggio") {
+                    ReactDOM.render(
+                        <React.StrictMode>
+                            <Stats />
+                        </React.StrictMode>,
+                        document.getElementById('Contenuto')
+                    );
+                }
+            };
+
+
+            render() {
+                return (
+                    <div className="Section">
+                        <h1>CampoFiorito</h1>
+                        <button onClick={this.onClick}>Configurazione</button>
+                        <button onClick={this.onClick}>Griglia</button>
+                        <button onClick={this.onClick}>Conteggio</button>
+                        <div id="Contenuto"></div>
+                    </div>
+                );
+            }
+        }
+
+        class Config extends React.Component {
+            constructor() {
+                super();
+                this.start = this.start.bind(this);
+            }
+
+            start(e) {
+                const dim = document.getElementById("dimension").value;
+                const steps = parseInt(document.getElementById("steps").value);
+                if (dim < 3) {
+                    window.alert("Valore troppo basso");
+                }
+                else {
+                    percorsiIncompleti++;
+                    ReactDOM.render(
+                        <React.StrictMode>
+                            <Griglia dim={dim} steps={steps} />
+                        </React.StrictMode>,
+                        document.getElementById('Contenuto')
+                    );
+                }
+            };
+
+            render() {
+                return (
+                    <div id='Config'>
+                        <input type="number" id="dimension" placeholder='dimensione griglia' />
+                        <input type="number" id="steps" placeholder="numeroPassi" />
+                        <button onClick={this.start}>Inizia Partita</button>
+                    </div>);
+
+
+            }
+        }
+
+        class Griglia extends React.Component {
+            constructor(props) {
+                super(props)
+                this.state = {
+                    steps: 0
+                };
+            }
+            incrementClickCount = () => {
+                this.setState(prevState => ({
+                    steps: prevState.steps + 1
+                }), () => {
+                    if (this.state.steps >= this.props.steps) {
+                        window.alert("Percorso completato");
+                        percorsiCompletati++;
+                        percorsiIncompleti--;
+                        ReactDOM.render(
+                            <React.StrictMode>
+                                <Config />
+                            </React.StrictMode>,
+                            document.getElementById('Contenuto')
+                        );
+                    }
+                });
+            }
+
+            render() {
+                var dim = parseInt(this.props.dim);
+                let rows = [];
+                for (let i = 0; i < dim; i++) {
+                    let cells = [];
+                    var firstBomb = getRandomInt(dim);
+                    do {
+                        var secondBomb = getRandomInt(dim);
+                    } while (secondBomb == firstBomb);
+                    for (let j = 0; j < dim; j++) {
+                        if (j == firstBomb || j == secondBomb) {
+                            cells.push(<td key={j}><ColorChangingButton destinationColor="red"
+                                incrementClickCount={this.incrementClickCount} /></td>);
+                        }
+                        else {
+                            cells.push(<td key={j}><ColorChangingButton destinationColor="blue"
+                                incrementClickCount={this.incrementClickCount} /></td>);
+                        }
+                    }
+                    rows.push(<tr key={i}>{cells}</tr>);
+                }
+                return <table>{rows}</table>;
+            }
+
+        }
+
+        class ColorChangingButton extends React.Component {
+            constructor(props) {
+                super(props);
+                this.state = {
+                    isClicked: false
+                };
+                this.handleClick = this.handleClick.bind(this);
+            }
+
+            handleClick = () => {
+                this.setState({ isClicked: true }, () => {
+                    const buttonColor = this.state.isClicked ? this.props.destinationColor : 'yellow';
+
+                    if (buttonColor === 'red') {
+                        window.alert("Partita terminata: percorso non completato");
+                        ReactDOM.render(
+                            <React.StrictMode>
+                                <Stats />
+                            </React.StrictMode>,
+                            document.getElementById('Contenuto')
+                        );
+                    } else {
+                        this.props.incrementClickCount();
+                    }
+                });
+            };
+
+            render() {
+                const { isClicked } = this.state;
+                const buttonColor = isClicked ? this.props.destinationColor : 'yellow';
+
+                return (
+                    <button
+                        style={{
+                            width: '20px',
+                            height: '20px',
+                            backgroundColor: buttonColor,
+                            color: 'white',
+                            border: 'none',
+                            cursor: 'pointer',
+                        }}
+                        onClick={this.handleClick}
+                    ></button>
+                );
+            }
+        }
+
+        class Stats extends React.Component {
+            constructor() {
+                super()
+            }
+
+            render() {
+                return (
+                    <div>
+                        <p>Numero di percorsi completati: {percorsiCompletati}</p>
+                        <p>Numero di percorsi non completati: {percorsiIncompleti}</p>
+                    </div>
+                )
+            }
+        }
+
+        function getRandomInt(dim) {
+            return Math.floor(Math.random() * (dim));
+        }
+
+
+    </script>
+    <!--  <script src="index.js" type="text/babel"></script>-->
+</head>
+
+<body>
+    <!-- Placeholder -->
+    <div id="page"></div>
+
+
+
+    <script type="text/babel">
+        ReactDOM.render(
+            <React.StrictMode>
+                <App />
+            </React.StrictMode>,
+            document.getElementById('page')
+        );
+    </script>
+</body>
+
+</html>
